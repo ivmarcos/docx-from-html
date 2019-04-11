@@ -1,10 +1,6 @@
 const docx = require('docx');
 const axios = require('axios');
-const extractor = require('textract');
-const {parse} = require('node-html-parser');
-const uriToBuffer = require('data-uri-to-buffer')
 const fs = require('fs');
-const sizeOf = require('image-size');
 
 const helpers = require('./docxHelpers');
 const path = require('path');
@@ -29,29 +25,41 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
     const questions = preview.versions['1'];
     
     const questionsPromises = questions.map(async question => {
-        const text = await helpers.htmlToText(question.text);
-        ///console.log('text', text);
-        const root = parse(question.text);
-        // const paragraph = new docx.Paragraph("Some cool text here.");
-        // doc.addParagraph(paragraph);
-        const imgs = root.querySelectorAll('img');
-        const images = imgs.map(img => img.attributes.src).filter(src => /data.*base64/g.test(src.slice(0,50))).map(src => uriToBuffer(src.replace(/"/g, ''))).map(buffer => ({buffer, meta: sizeOf(buffer)}));
+        const questionParsed = await helpers.parseHtml(question.text);
+        const alternativesPromise = question.alternatives.map(async alternative => await helpers.parseHtml(alternative.text));
+        const alternativesResolved = await Promise.all(alternativesPromise);
         return {
-            text,
-            images
+            ...questionParsed,
+            alternatives: alternativesResolved
         }
     })
     
-    const questionsResolved = await Promise.all(questionsPromises);
-    //console.log(questionsResolved);
     const doc = new docx.Document();
-    questionsResolved.forEach(qr => {
+    const questionsResolved = await Promise.all(questionsPromises);
+    const numbering = new docx.Numbering();
+
+    const abstractNum = numbering.createAbstractNumbering();
+    abstractNum.createLevel(0, "lowerLetter", "%1", "start").addParagraphProperty(new docx.Indent(720, 260));
+    abstractNum.createLevel(1, "decimal", "%2.", "start").addParagraphProperty(new docx.Indent(1440, 980));
+    abstractNum.createLevel(2, "upperRoman", "%1)", "start").addParagraphProperty(new docx.Indent(2160, 1700));
+    const concrete = numbering.createConcreteNumbering(abstractNum);
+
+    //console.log(questionsResolved);
+
+    questionsResolved.forEach(question => {
         //console.log('textok', qr.text)
-        const paragraph = new docx.Paragraph(qr.text);
+        const paragraph = new docx.Paragraph(question.text);
         doc.addParagraph(paragraph);
 //        qr.images.forEach(image => doc.createImage(Buffer.from(image.base64, 'base64')));
-       qr.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
-})
+        question.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
+        question.alternatives.forEach(alternative => {
+            const alternativeParagraph = new docx.Paragraph(alternative.text);
+            alternativeParagraph.setNumbering(concrete, 0)
+            doc.addParagraph(alternativeParagraph)
+            alternative.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
+       })
+       
+    })
     const packer = new docx.Packer();
     packer.toBuffer(doc).then((buffer) => {
         fs.writeFileSync("My First Document.docx", buffer);
@@ -66,7 +74,12 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
    
 }).catch(err => console.error(err));
 
-
+/*
+  const b64string = await packer.toBase64String(doc);
+    
+    res.setHeader('Content-Disposition', 'attachment; filename=My Document.docx');
+    res.send(Buffer.from(b64string, 'base64'));
+*/
 // const paragraph = new docx.Paragraph("Some cool text here.");
 // doc.addParagraph(paragraph);
 // const packer = new docx.Packer();
