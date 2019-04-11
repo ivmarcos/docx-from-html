@@ -38,11 +38,9 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
     const questionsResolved = await Promise.all(questionsPromises);
     const numbering = new docx.Numbering();
 
-    const abstractNum = numbering.createAbstractNumbering();
-    abstractNum.createLevel(0, "lowerLetter", "%1", "start").addParagraphProperty(new docx.Indent(720, 260));
-    abstractNum.createLevel(1, "decimal", "%2.", "start").addParagraphProperty(new docx.Indent(1440, 980));
-    abstractNum.createLevel(2, "upperRoman", "%1)", "start").addParagraphProperty(new docx.Indent(2160, 1700));
-    const concrete = numbering.createConcreteNumbering(abstractNum);
+    const numberedAbstract = doc.Numbering.createAbstractNumbering();
+
+    numberedAbstract.createLevel(0, "lowerLetter", "%1)", "left");
 
     //console.log(questionsResolved);
 
@@ -52,10 +50,13 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
         doc.addParagraph(paragraph);
 //        qr.images.forEach(image => doc.createImage(Buffer.from(image.base64, 'base64')));
         question.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
+        const letterNumbering = doc.Numbering.createConcreteNumbering(numberedAbstract);
         question.alternatives.forEach(alternative => {
-            const alternativeParagraph = new docx.Paragraph(alternative.text);
-            alternativeParagraph.setNumbering(concrete, 0)
-            doc.addParagraph(alternativeParagraph)
+            // const alternativeParagraph = new docx.Paragraph(alternative.text);
+            // alternativeParagraph.setNumbering(concrete, 0)
+            doc.createParagraph(alternative.text).setNumbering(letterNumbering, 0);
+
+//            doc.addParagraph(alternativeParagraph)
             alternative.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
        })
        
