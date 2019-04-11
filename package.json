@@ -18,8 +18,10 @@
   "homepage": "https://github.com/ivmarcos/docx-from-html#readme",
   "dependencies": {
     "axios": "^0.18.0",
+    "data-uri-to-buffer": "^2.0.1",
     "docx": "^4.7.1",
     "htmlparser": "^1.7.7",
+    "image-size": "^0.7.3",
     "node-html-parser": "^1.1.15",
     "textract": "^2.4.0",
     "unfluff": "^3.2.0"

@@ -2,7 +2,10 @@ const docx = require('docx');
 const axios = require('axios');
 const extractor = require('textract');
 const {parse} = require('node-html-parser');
+const uriToBuffer = require('data-uri-to-buffer')
 const fs = require('fs');
+const sizeOf = require('image-size');
+
 const helpers = require('./docxHelpers');
 const path = require('path');
 
@@ -34,8 +37,16 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
         const imgs = root.querySelectorAll('img');
         const images = imgs.map(img => img.attributes.src).filter(src => /data.*base64/g.test(src.slice(0,50))).map(src => {
             const position = src.indexOf(';base64,') + 8;
-            return src.slice(position, src.length)
+            const buffer = uriToBuffer(src.replace(/"/g, ''));
+            return {
+                base64: src.slice(position, src.length),
+                dimensions: sizeOf(buffer),
+                buffer
+            }
         });
+        if (images[0]) {
+            console.log(images[0]);
+        }
         return {
             text,
             images
@@ -49,11 +60,9 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
         //console.log('textok', qr.text)
         const paragraph = new docx.Paragraph(qr.text);
         doc.addParagraph(paragraph);
-        qr.images.forEach(base64 => {
-            console.log('b', base64.slice(0, 2))
-            doc.createImage(Buffer.from(base64, 'base64'),);
-        });
-    })
+//        qr.images.forEach(image => doc.createImage(Buffer.from(image.base64, 'base64')));
+       qr.images.forEach(image => doc.createImage(image.buffer, image.dimensions.width, image.dimensions.height));
+})
     const packer = new docx.Packer();
     packer.toBuffer(doc).then((buffer) => {
         fs.writeFileSync("My First Document.docx", buffer);
