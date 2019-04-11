@@ -35,18 +35,7 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
         // const paragraph = new docx.Paragraph("Some cool text here.");
         // doc.addParagraph(paragraph);
         const imgs = root.querySelectorAll('img');
-        const images = imgs.map(img => img.attributes.src).filter(src => /data.*base64/g.test(src.slice(0,50))).map(src => {
-            const position = src.indexOf(';base64,') + 8;
-            const buffer = uriToBuffer(src.replace(/"/g, ''));
-            return {
-                base64: src.slice(position, src.length),
-                dimensions: sizeOf(buffer),
-                buffer
-            }
-        });
-        if (images[0]) {
-            console.log(images[0]);
-        }
+        const images = imgs.map(img => img.attributes.src).filter(src => /data.*base64/g.test(src.slice(0,50))).map(src => uriToBuffer(src.replace(/"/g, ''))).map(buffer => ({buffer, meta: sizeOf(buffer)}));
         return {
             text,
             images
@@ -61,7 +50,7 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
         const paragraph = new docx.Paragraph(qr.text);
         doc.addParagraph(paragraph);
 //        qr.images.forEach(image => doc.createImage(Buffer.from(image.base64, 'base64')));
-       qr.images.forEach(image => doc.createImage(image.buffer, image.dimensions.width, image.dimensions.height));
+       qr.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
 })
     const packer = new docx.Packer();
     packer.toBuffer(doc).then((buffer) => {
