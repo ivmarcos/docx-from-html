@@ -1,0 +1,27 @@
+{
+  "name": "docx-from-html",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivmarcos/docx-from-html.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ivmarcos/docx-from-html/issues"
+  },
+  "homepage": "https://github.com/ivmarcos/docx-from-html#readme",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "docx": "^4.7.1",
+    "htmlparser": "^1.7.7",
+    "node-html-parser": "^1.1.15",
+    "textract": "^2.4.0",
+    "unfluff": "^3.2.0"
+  }
+}
