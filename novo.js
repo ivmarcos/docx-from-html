@@ -44,17 +44,30 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
 
     //console.log(questionsResolved);
 
-    questionsResolved.forEach(question => {
+    function insertQuestionParagraph(question, questionIndex){
+      doc.addParagraph(new docx.Paragraph("").thematicBreak());
+      const paragraph = new docx.Paragraph().spacing({before: 100, after: 100});
+      paragraph.addRun(new docx.TextRun(questionIndex + 1 + ') ').bold());
+      paragraph.addRun(new docx.TextRun(question.text));
+      doc.addParagraph(paragraph);
+    }
+
+    function insertAlternativeParagraph(alternative, letterNumbering){
+      const paragraph = new docx.Paragraph().setNumbering(letterNumbering, 0)
+      paragraph.addRun(new docx.TextRun(alternative.text));
+      doc.addParagraph(paragraph);
+    }
+
+    questionsResolved.forEach((question, questionIndex) => {
         //console.log('textok', qr.text)
-        const paragraph = new docx.Paragraph(question.text);
-        doc.addParagraph(paragraph);
+        insertQuestionParagraph(question, questionIndex);
 //        qr.images.forEach(image => doc.createImage(Buffer.from(image.base64, 'base64')));
         question.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
         const letterNumbering = doc.Numbering.createConcreteNumbering(numberedAbstract);
         question.alternatives.forEach(alternative => {
             // const alternativeParagraph = new docx.Paragraph(alternative.text);
             // alternativeParagraph.setNumbering(concrete, 0)
-            doc.createParagraph(alternative.text).setNumbering(letterNumbering, 0);
+            insertAlternativeParagraph(alternative, letterNumbering);
 
 //            doc.addParagraph(alternativeParagraph)
             alternative.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
@@ -63,7 +76,7 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
     })
     const packer = new docx.Packer();
     packer.toBuffer(doc).then((buffer) => {
-        fs.writeFileSync("My First Document.docx", buffer);
+        fs.writeFileSync("teste" + new Date().getTime() + '.docx', buffer);
     });
 
     // const paragraph = new docx.Paragraph("Some cool text here.");
