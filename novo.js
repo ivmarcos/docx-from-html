@@ -24,21 +24,21 @@ const locale = 'pt';
 const intl = {
   ES: {
     version: 'Versión',
-    selectAlternative: 'Selecciona la opción correcta',
+    selectAlternative: 'Selecciona la opción correcta:',
     name: 'Nombre',
     group: 'Grupo',
     date: 'Fecha'
   },
   EN: {
-    version: 'Versión',
-    selectAlternative: 'Selecciona la opción correcta',
-    name: 'Nombre',
-    group: 'Grupo',
-    date: 'Fecha'
+    version: 'Version',
+    selectAlternative: 'Select the correct answer:',
+    name: 'Name',
+    group: 'Group',
+    date: 'Date'
   },
   PT: {
     version: 'Versão',
-    selectAlternative: 'Selecione a alternativa correta',
+    selectAlternative: 'Selecione a alternativa correta:',
     name: 'Nome',
     group: 'Grupo',
     date: 'Data'
@@ -48,7 +48,7 @@ const intl = {
 api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async responsePreview => {
     const preview = responsePreview.data.content;
     const questions = preview.versions['1'];
-   
+    const version = 'A';
     
     const questionsPromises = questions.map(async question => {
         const questionParsed = await helpers.parseHtml(question.text);
@@ -69,24 +69,22 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
     //console.log(questionsResolved);
 
     const {
-      version,
       logo, 
       subtitle,
       title
     } = preview;
 
     function insertHeader(){
-      const paragraphTitle = new docx.Paragraph(title).size(50).spacing({before: 100}).bold().center();;
-      const paragraphSubtitle = new docx.Paragraph(subtitle).spacing({after: 100}).bold().center();;
-      const paragraphVersionLabel = new docx.Paragraph(localeText.version).bold().center();;
-      const paragraphVersion = new docx.Paragraph(version).size(75).bold().center();;
+      const paragraphTitle = new docx.Paragraph().addRun(new docx.TextRun(title).size(30).bold()).center().spacing({before: 100});
+      const paragraphSubtitle = new docx.Paragraph().addRun(new docx.TextRun(subtitle).bold()).center().spacing({after: 200});
+      const paragraphVersionLabel = new docx.Paragraph().addRun(new docx.TextRun(localeText.version).bold()).center();
+      const paragraphVersion = new docx.Paragraph().addRun(new docx.TextRun(version).size(50).bold()).center().spacing({after: 100});
       if (logo){
         const image = helpers.getMetadata(logo);
         doc.createImage(image.buffer, image.meta.width, image.meta.height)
       }
       doc.addParagraph(paragraphTitle);
       doc.addParagraph(paragraphSubtitle);
-      doc.addParagraph
       doc.addParagraph(paragraphVersionLabel);
       doc.addParagraph(paragraphVersion)
     }
@@ -100,29 +98,33 @@ api.post('/assessmentPreview.php', { idAssessment: ID_ASSESSMENT }).then(async r
 
     function insertQuestionParagraph(question, questionIndex){
       doc.addParagraph(new docx.Paragraph("").thematicBreak());
-      const paragraph = new docx.Paragraph().spacing({before: 100, after: 100});
+      const paragraph = new docx.Paragraph().spacing({before: 200, after: 100});
       paragraph.addRun(new docx.TextRun(questionIndex + 1 + ') ').bold());
       paragraph.addRun(new docx.TextRun(question.text));
       doc.addParagraph(paragraph);
-      const paragraphAlternativeSelect = new docx.Paragraph(localeText.selectAlternative).spacing({before: 100, after: 100});
-      doc.addParagraph(paragraphAlternativeSelect);
     }
 
-    function insertAlternativeParagraph(alternative, letterNumbering){
+    function insertAlternativeParagraph(alternative, letterNumbering, alternativeIndex){
       const paragraph = new docx.Paragraph().setNumbering(letterNumbering, 0)
       paragraph.addRun(new docx.TextRun(alternative.text));
+      if (alternativeIndex === 0){
+        paragraph.spacing({before: 100});
+      }
       doc.addParagraph(paragraph);
     }
 
     function insertQuestions(){
+      doc.addParagraph(new docx.Paragraph(" "))
       const numberedAbstract = doc.Numbering.createAbstractNumbering();
       numberedAbstract.createLevel(0, "lowerLetter", "%1)", "left");
       questionsResolved.forEach((question, questionIndex) => {
           insertQuestionParagraph(question, questionIndex);
           question.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
+          const paragraphAlternativeSelect = new docx.Paragraph(localeText.selectAlternative).spacing({before: 100, after: 100});
+          doc.addParagraph(paragraphAlternativeSelect);
           const letterNumbering = doc.Numbering.createConcreteNumbering(numberedAbstract);
-          question.alternatives.forEach(alternative => {
-              insertAlternativeParagraph(alternative, letterNumbering);
+          question.alternatives.forEach((alternative, alernativeIndex) => {
+              insertAlternativeParagraph(alternative, letterNumbering, alernativeIndex);
               alternative.images.forEach(image => doc.createImage(image.buffer, image.meta.width, image.meta.height));
          })
       })
