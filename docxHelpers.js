@@ -20,7 +20,14 @@ const Helpers =  {
    extractImagesFromHtml(html){
     const root = parse(html);
     const imgs = root.querySelectorAll('img');
-    return imgs.map(img => img.attributes.src).filter(src => /data.*base64/g.test(src.slice(0,50))).map(src => uriToBuffer(src.replace(/"/g, ''))).map(buffer => ({buffer, meta: sizeOf(buffer)}));
+    return imgs.map(img => img.attributes.src).filter(src => /data.*base64/g.test(src.slice(0,50))).map(Helpers.getMetadata);
+   },
+   getMetadata(base64){
+    const buffer = uriToBuffer(base64.replace(/"/g, ''));
+    return {
+        buffer, 
+        meta: sizeOf(buffer)
+    };
    },
    async parseHtml(html){
        const text = await Helpers.htmlToText(html);
